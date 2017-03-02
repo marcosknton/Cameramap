@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "277184573233",
+    "firebase_url": "https://cameramap-9c60c.firebaseio.com",
+    "project_id": "cameramap-9c60c",
+    "storage_bucket": "cameramap-9c60c.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277184573233:android:6952bc06af652dab",
+        "android_client_info": {
+          "package_name": "com.example.michus.cameramap"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "277184573233-qmirsc6gk0qpg3voahp4n02qdhdkes5t.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.michus.cameramap",
+            "certificate_hash": "7dd9ef14d03a0f87709042e8ad3229959dcf056f"
+          }
+        },
+        {
+          "client_id": "277184573233-61l9qm3nakalf314cbbpdmursb7e4elr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCMkVimdzsNAPKYqKSNfZd_hlZm8CDm08Q"
+        }
+      ],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 2,
+          "other_platform_oauth_client": [
+            {
+              "client_id": "277184573233-61l9qm3nakalf314cbbpdmursb7e4elr.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
