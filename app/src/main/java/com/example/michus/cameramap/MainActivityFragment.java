@@ -92,6 +92,7 @@ public class MainActivityFragment extends Fragment {
                     Marker startMaker = new Marker(map);
                     startMaker.setPosition(estationpoint);
                     startMaker.setTitle(imagen.getAdress());
+                    startMaker.setSnippet(imagen.fecha_hora(imagen.getRutaimagen()));
                     startMaker.setIcon(getResources().getDrawable(R.drawable.love));
                     map.getOverlays().add(startMaker);
                 }
@@ -118,7 +119,7 @@ public class MainActivityFragment extends Fragment {
 
     private File createImageFile() throws IOException {
         // Create an image file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String timeStamp = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date());
         String imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES);
@@ -168,7 +169,13 @@ public class MainActivityFragment extends Fragment {
                             Uri.fromFile(photoFile));
                     startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
                 }
+                else {
+                    Log.i("++++++++++++++++", "no funciona el gps");
+                }
 
+            }
+            else {
+                Log.i("++++++++++++++++", "ruta vacia");
             }
         }
     }
@@ -220,7 +227,7 @@ public class MainActivityFragment extends Fragment {
                     public boolean onMarkerClick(Marker marker, MapView mapView) {
 
                         final Intent intent=new Intent(getContext(),detalle.class);
-                        intent.putExtra("direccion",((Marker) overlay).getTitle());
+                        intent.putExtra("direccion",((Marker) overlay).getTitle()+"\n"+((Marker) overlay).getSnippet());
                         final String[] ruta = {""};
 
                         myRef2.addValueEventListener(new ValueEventListener() {
@@ -229,8 +236,10 @@ public class MainActivityFragment extends Fragment {
 
                                 for(DataSnapshot Dataimagen:snapshot.getChildren()){
                                     final Imagen imagen=Dataimagen.getValue(Imagen.class);
-                                    if (imagen.getAdress().equals(((Marker) overlay).getTitle())) {
-                                        ruta[0] = imagen.getRutaimagen();
+                                    if (imagen.getRutaimagen().contains(((Marker) overlay).getSnippet())){
+                                        if (imagen.getAdress().equals(((Marker) overlay).getTitle())) {
+                                            ruta[0] = imagen.getRutaimagen();
+                                        }
                                     }
                                 }
                                 intent.putExtra("ruta",ruta[0]);
