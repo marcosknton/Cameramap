@@ -49,6 +49,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import static android.app.Activity.RESULT_OK;
+
 /**
  * A placeholder fragment containing a simple view.
  */
@@ -56,13 +58,12 @@ public class MainActivityFragment extends Fragment {
 
     private MapView map;
     private IMapController mapController;
-    private MyLocationNewOverlay myLocationOverlay;
-    private ScaleBarOverlay mScaleBarOverlay;
 
-
+    //String ruta="";
     String mCurrentPhotoPath;
     static final int REQUEST_TAKE_PHOTO = 1;
-    private FirebaseListAdapter<Imagen> mAdapter;
+    FirebaseDatabase database = FirebaseDatabase.getInstance();
+    DatabaseReference myRef = database.getReference("imagen");
 
 
     public MainActivityFragment() {
@@ -78,10 +79,14 @@ public class MainActivityFragment extends Fragment {
         initializeMap();
         setZoom();
 
-
-        FirebaseDatabase database = FirebaseDatabase.getInstance();
-        final DatabaseReference myRef = database.getReference("imagen");
-
+        Button buttoncamera = (Button) view.findViewById(R.id.Bcamara);
+        buttoncamera.setOnClickListener(
+                new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        dispatchTakePictureIntent();
+                    }
+                });
 
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
@@ -106,14 +111,7 @@ public class MainActivityFragment extends Fragment {
             }
         });
 
-        Button buttoncamera = (Button) view.findViewById(R.id.Bcamara);
-        buttoncamera.setOnClickListener(
-                new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        dispatchTakePictureIntent(myRef);
-                    }
-                });
+
         return view;
     }
 
@@ -130,56 +128,93 @@ public class MainActivityFragment extends Fragment {
         );
 
         // Save a file: path for use with ACTION_VIEW intents
-        mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        mCurrentPhotoPath = image.getAbsolutePath();
+        Log.i("8888888888888888",mCurrentPhotoPath);
         return image;
     }
 
-    private void dispatchTakePictureIntent(DatabaseReference myRef) {
+/*
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        //Log.i("000000000000000000000",sdata);
+        if (requestCode == REQUEST_TAKE_PHOTO) {
+            Log.i("++++++++++++++++", "take foto");
+            if (resultCode == RESULT_OK) {
+                Double latitude;
+                Double longitude;
+                String adress;
+                String path;
+                Gps gps = new Gps(this.getContext());
+                if (gps.canGetLocation()) {
+                    latitude = gps.getLatitude();
+                    longitude = gps.getLongitude();
+                    adress = getCurrentLocation(latitude, longitude);
+                    path= data.getStringExtra("ruta");
+                    Imagen imagen = new Imagen(path, latitude, longitude, adress);
+                    myRef.push().setValue(imagen);
+
+                } else {
+
+                    Log.i("no funciona el gps", "dddddddddd");
+                }
+            } else {
+                Log.i("++++++++++++++++", "nofunciona");
+                }
+        }
+    }
+
+*/
+
+    private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
             // Create the File where the photo should go
             File photoFile = null;
-            Double latitude;
-            Double longitude;
-            String adress;
+
             Log.i("++++++++++++++++", "primer if");
             try {
                 photoFile = createImageFile();
-
-
             } catch (IOException ex) {
                 // Error occurred while creating the File
-
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
-                String ruta = photoFile.getAbsolutePath();
+                Double latitude;
+                Double longitude;
+                String adress;
+                String path;
                 Gps gps = new Gps(this.getContext());
-
                 if (gps.canGetLocation()) {
                     latitude = gps.getLatitude();
                     longitude = gps.getLongitude();
                     adress = getCurrentLocation(latitude, longitude);
-
-                    Imagen imagen = new Imagen(ruta, latitude, longitude, adress);
+                    path= mCurrentPhotoPath;
+                    Imagen imagen = new Imagen(path, latitude, longitude, adress);
                     myRef.push().setValue(imagen);
-                    Log.i("------------------", imagen.getRutaimagen());
-                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                            Uri.fromFile(photoFile));
-                    startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-                }
-                else {
-                    Log.i("++++++++++++++++", "no funciona el gps");
-                }
 
-            }
-            else {
-                Log.i("++++++++++++++++", "ruta vacia");
+                } else {
+
+                    Log.i("no funciona el gps", "dddddddddd");
+                }
+                //takePictureIntent.putExtra("ruta",mCurrentPhotoPath);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
+                        Uri.fromFile(photoFile));
+                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+                //Log.i("++++++++++++++++", ruta);
+
             }
         }
+
+
     }
-    public String getCurrentLocation(Double latitud,Double longitud) {
+
+
+
+
+    public String getCurrentLocation(Double latitud, Double longitud) {
         Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
         List<Address> addresses = null;
         String mAddresses = null;
@@ -239,9 +274,11 @@ public class MainActivityFragment extends Fragment {
                                     if (imagen.getRutaimagen().contains(((Marker) overlay).getSnippet())){
                                         if (imagen.getAdress().equals(((Marker) overlay).getTitle())) {
                                             ruta[0] = imagen.getRutaimagen();
+
                                         }
                                     }
                                 }
+
                                 intent.putExtra("ruta",ruta[0]);
                                 startActivity(intent);
 

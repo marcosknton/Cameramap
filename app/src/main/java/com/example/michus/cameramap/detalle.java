@@ -28,6 +28,7 @@ public class detalle extends AppCompatActivity {
         ImageView imagen=(ImageView) findViewById(R.id.Ivimagen);
         String sdireccion=getIntent().getStringExtra("direccion");
         String sruta=getIntent().getStringExtra("ruta");
+        Log.i("!!!!!!!!",sruta);
         Glide.with(this).load(sruta).into(imagen);
         direccion.setText(sdireccion);
 
