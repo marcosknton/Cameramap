@@ -32,6 +32,7 @@ public class detalleFragment extends Fragment {
                     @Override
                     public void onClick(View v) {
                         Intent i = new Intent(getContext(), MainActivity.class );
+                        i.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         startActivity(i);
                     }
                 });
