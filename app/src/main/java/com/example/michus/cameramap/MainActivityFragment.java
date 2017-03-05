@@ -29,10 +29,14 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import org.osmdroid.api.IMapController;
+import org.osmdroid.events.MapEventsReceiver;
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory;
 import org.osmdroid.util.GeoPoint;
 import org.osmdroid.views.MapView;
+import org.osmdroid.views.overlay.MapEventsOverlay;
 import org.osmdroid.views.overlay.Marker;
+import org.osmdroid.views.overlay.Overlay;
+import org.osmdroid.views.overlay.OverlayItem;
 import org.osmdroid.views.overlay.ScaleBarOverlay;
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider;
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
@@ -40,6 +44,7 @@ import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay;
 import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -59,6 +64,7 @@ public class MainActivityFragment extends Fragment {
     static final int REQUEST_TAKE_PHOTO = 1;
     private FirebaseListAdapter<Imagen> mAdapter;
 
+
     public MainActivityFragment() {
     }
 
@@ -70,16 +76,16 @@ public class MainActivityFragment extends Fragment {
         map = (MapView) view.findViewById(R.id.mapView);
         mapController = map.getController();
         initializeMap();
-        //setOverlays();
         setZoom();
 
 
         FirebaseDatabase database = FirebaseDatabase.getInstance();
         final DatabaseReference myRef = database.getReference("imagen");
 
+
         myRef.addValueEventListener(new ValueEventListener() {
             @Override
-            public void onDataChange(DataSnapshot snapshot) {
+            public void onDataChange(final DataSnapshot snapshot) {
                 for(DataSnapshot Dataimagen:snapshot.getChildren()){
                     Imagen imagen=Dataimagen.getValue(Imagen.class);
                     GeoPoint estationpoint = new GeoPoint(imagen.getLatitude(), imagen.getLongitude());
@@ -89,6 +95,7 @@ public class MainActivityFragment extends Fragment {
                     startMaker.setIcon(getResources().getDrawable(R.drawable.love));
                     map.getOverlays().add(startMaker);
                 }
+                lista(myRef);
                 map.invalidate();
             }
 
@@ -147,39 +154,35 @@ public class MainActivityFragment extends Fragment {
             // Continue only if the File was successfully created
             if (photoFile != null) {
                 String ruta = photoFile.getAbsolutePath();
-                latitude=getCurrentLatitude();
-                longitude=getCurrentLongitude();
-                adress=getCurrentLocation();
-                Imagen imagen = new Imagen(ruta,latitude,longitude,adress);
-                myRef.push().setValue(imagen);
-                Log.i("------------------", imagen.getRutaimagen());
-                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        Uri.fromFile(photoFile));
-                startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-            }
+                Gps gps = new Gps(this.getContext());
 
+                if (gps.canGetLocation()) {
+                    latitude = gps.getLatitude();
+                    longitude = gps.getLongitude();
+                    adress = getCurrentLocation(latitude, longitude);
+
+                    Imagen imagen = new Imagen(ruta, latitude, longitude, adress);
+                    myRef.push().setValue(imagen);
+                    Log.i("------------------", imagen.getRutaimagen());
+                    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
+                            Uri.fromFile(photoFile));
+                    startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+                }
+
+            }
         }
     }
-    public String getCurrentLocation() {
-        // Get LocationManager object
-         LocationManager mLocationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-        // Create a criteria object to retrieve provider
-         Criteria criteria = new Criteria();
-        //Get the name of the best provider
-        String provider = mLocationManager.getBestProvider(criteria, true);
-        // Get Current Location
-         Location mLocation = mLocationManager.getLastKnownLocation(provider);
-        // Geo coder object to transform lat and lon location to street address or other description
-         Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
+    public String getCurrentLocation(Double latitud,Double longitud) {
+        Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
         List<Address> addresses = null;
         String mAddresses = null;
         try {
         // Get address from location
-        addresses = geocoder.getFromLocation(mLocation.getLatitude(), mLocation.getLongitude(), 1);
+        addresses = geocoder.getFromLocation(latitud, longitud, 1);
         } catch (IOException e) {
            e.printStackTrace();
         }
-        // Get address
+        // Get address...
         if (addresses != null && addresses.size() > 0) {
         mAddresses = addresses.get(0).getAddressLine(0)     /* address line */
         +" " + addresses.get(0).getCountryCode()   /* code country example: ES, US, etc */
@@ -188,28 +191,7 @@ public class MainActivityFragment extends Fragment {
         Log.d("Location", mAddresses);
         return mAddresses;
     }
-    public Double getCurrentLatitude() {
-        // Get LocationManager object
-        LocationManager mLocationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-        // Create a criteria object to retrieve provider
-        Criteria criteria = new Criteria();
-        //Get the name of the best provider
-        String provider = mLocationManager.getBestProvider(criteria, true);
-        // Get Current Location
-        Location mLocation = mLocationManager.getLastKnownLocation(provider);
-        return mLocation.getLatitude();
-    }
-    public Double getCurrentLongitude() {
-        // Get LocationManager object
-        LocationManager mLocationManager = (LocationManager) getContext().getSystemService(Context.LOCATION_SERVICE);
-        // Create a criteria object to retrieve provider
-        Criteria criteria = new Criteria();
-        //Get the name of the best provider
-        String provider = mLocationManager.getBestProvider(criteria, true);
-        // Get Current Location
-        Location mLocation = mLocationManager.getLastKnownLocation(provider);
-        return mLocation.getLongitude();
-    }
+
     private void initializeMap() {
         map.setTileSource(TileSourceFactory.MAPNIK);
         map.setTilesScaledToDpi(true);
@@ -217,30 +199,63 @@ public class MainActivityFragment extends Fragment {
         map.setMultiTouchControls(true);
     }
 
-    private void setOverlays(){
-        final DisplayMetrics dm = getResources().getDisplayMetrics();
 
-        myLocationOverlay = new MyLocationNewOverlay(
-        new GpsMyLocationProvider(getContext()),
-        map
-        );
-        myLocationOverlay.enableMyLocation();
-        myLocationOverlay.runOnFirstFix(new Runnable() {
-        @Override
-         public void run() {
-         mapController.animateTo(myLocationOverlay.getMyLocation());
-         }
-         });
-
-        mScaleBarOverlay = new ScaleBarOverlay(map);
-        mScaleBarOverlay.setCentred(true);
-        mScaleBarOverlay.setScaleBarOffset(dm.widthPixels / 2, 10);
-    }
     private void setZoom() {
         mapController.setZoom(14);
-        GeoPoint startPoint = new GeoPoint(getCurrentLatitude(),getCurrentLongitude());
+        Gps gps = new Gps(this.getContext());
+        GeoPoint startPoint = new GeoPoint(gps.getLatitude(),gps.getLongitude());
         mapController.setCenter(startPoint);
+    }
+
+
+
+    void lista(final DatabaseReference myRef2){
+
+        List<Overlay> overlays=map.getOverlays();
+        for(final Overlay overlay:overlays){
+            if (overlay instanceof Marker) {
+                Log.i("-----------", overlay.getClass().toString());
+                ((Marker) overlay).setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+                    @Override
+                    public boolean onMarkerClick(Marker marker, MapView mapView) {
+
+                        final Intent intent=new Intent(getContext(),detalle.class);
+                        intent.putExtra("direccion",((Marker) overlay).getTitle());
+                        final String[] ruta = {""};
+
+                        myRef2.addValueEventListener(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(final DataSnapshot snapshot) {
+
+                                for(DataSnapshot Dataimagen:snapshot.getChildren()){
+                                    final Imagen imagen=Dataimagen.getValue(Imagen.class);
+                                    if (imagen.getAdress().equals(((Marker) overlay).getTitle())) {
+                                        ruta[0] = imagen.getRutaimagen();
+                                    }
+                                }
+                                intent.putExtra("ruta",ruta[0]);
+                                startActivity(intent);
+
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+
+                        return true;
+                    }
+                });
+            }
         }
+
+
+
+    }
+
+
+
 
 
 }
