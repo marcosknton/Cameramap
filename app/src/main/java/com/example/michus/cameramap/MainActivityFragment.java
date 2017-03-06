@@ -20,6 +20,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.EditText;
 
 import com.firebase.ui.database.FirebaseListAdapter;
 import com.google.firebase.database.DataSnapshot;
@@ -73,7 +74,7 @@ public class MainActivityFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_main, container, false);
-
+        final EditText editText=(EditText)view.findViewById(R.id.editText);
         map = (MapView) view.findViewById(R.id.mapView);
         mapController = map.getController();
         initializeMap();
@@ -84,7 +85,8 @@ public class MainActivityFragment extends Fragment {
                 new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        dispatchTakePictureIntent();
+                        final String nombre=editText.getText().toString();
+                        dispatchTakePictureIntent(nombre);
                     }
                 });
 
@@ -92,16 +94,24 @@ public class MainActivityFragment extends Fragment {
             @Override
             public void onDataChange(final DataSnapshot snapshot) {
                 for(DataSnapshot Dataimagen:snapshot.getChildren()){
-                    Imagen imagen=Dataimagen.getValue(Imagen.class);
+                    final Imagen imagen=Dataimagen.getValue(Imagen.class);
                     GeoPoint estationpoint = new GeoPoint(imagen.getLatitude(), imagen.getLongitude());
                     Marker startMaker = new Marker(map);
                     startMaker.setPosition(estationpoint);
-                    startMaker.setTitle(imagen.getAdress());
-                    startMaker.setSnippet(imagen.fecha_hora(imagen.getRutaimagen()));
-                    startMaker.setIcon(getResources().getDrawable(R.drawable.love));
+                    //startMaker.setIcon(getDrawable(getResources(), R.drawable.love, null));
+                    startMaker.setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
+                        @Override
+                        public boolean onMarkerClick(Marker marker, MapView mapView) {
+                            Intent intent=new Intent(getContext(),detalle.class);
+                            intent.putExtra("direccion",(imagen.getNombre()+"\n"+imagen.getAdress()+"\n"+ imagen.fecha_hora(imagen.getRutaimagen())));
+                            intent.putExtra("ruta",imagen.getRutaimagen());
+                            startActivity(intent);
+                            return true;
+                        }
+                    });
                     map.getOverlays().add(startMaker);
                 }
-                lista(myRef);
+
                 map.invalidate();
             }
 
@@ -167,7 +177,7 @@ public class MainActivityFragment extends Fragment {
 
 */
 
-    private void dispatchTakePictureIntent() {
+    private void dispatchTakePictureIntent(String nombre) {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
@@ -192,7 +202,7 @@ public class MainActivityFragment extends Fragment {
                     longitude = gps.getLongitude();
                     adress = getCurrentLocation(latitude, longitude);
                     path= mCurrentPhotoPath;
-                    Imagen imagen = new Imagen(path, latitude, longitude, adress);
+                    Imagen imagen = new Imagen(path, latitude, longitude, adress,nombre);
                     myRef.push().setValue(imagen);
 
                 } else {
@@ -210,9 +220,6 @@ public class MainActivityFragment extends Fragment {
 
 
     }
-
-
-
 
     public String getCurrentLocation(Double latitud, Double longitud) {
         Geocoder geocoder = new Geocoder(getContext(), Locale.getDefault());
@@ -248,60 +255,6 @@ public class MainActivityFragment extends Fragment {
         GeoPoint startPoint = new GeoPoint(gps.getLatitude(),gps.getLongitude());
         mapController.setCenter(startPoint);
     }
-
-
-
-    void lista(final DatabaseReference myRef2){
-
-        List<Overlay> overlays=map.getOverlays();
-        for(final Overlay overlay:overlays){
-            if (overlay instanceof Marker) {
-                Log.i("-----------", overlay.getClass().toString());
-                ((Marker) overlay).setOnMarkerClickListener(new Marker.OnMarkerClickListener() {
-                    @Override
-                    public boolean onMarkerClick(Marker marker, MapView mapView) {
-
-                        final Intent intent=new Intent(getContext(),detalle.class);
-                        intent.putExtra("direccion",((Marker) overlay).getTitle()+"\n"+((Marker) overlay).getSnippet());
-                        final String[] ruta = {""};
-
-                        myRef2.addValueEventListener(new ValueEventListener() {
-                            @Override
-                            public void onDataChange(final DataSnapshot snapshot) {
-
-                                for(DataSnapshot Dataimagen:snapshot.getChildren()){
-                                    final Imagen imagen=Dataimagen.getValue(Imagen.class);
-                                    if (imagen.getRutaimagen().contains(((Marker) overlay).getSnippet())){
-                                        if (imagen.getAdress().equals(((Marker) overlay).getTitle())) {
-                                            ruta[0] = imagen.getRutaimagen();
-
-                                        }
-                                    }
-                                }
-
-                                intent.putExtra("ruta",ruta[0]);
-                                startActivity(intent);
-
-                            }
-
-                            @Override
-                            public void onCancelled(DatabaseError databaseError) {
-
-                            }
-                        });
-
-                        return true;
-                    }
-                });
-            }
-        }
-
-
-
-    }
-
-
-
 
 
 }

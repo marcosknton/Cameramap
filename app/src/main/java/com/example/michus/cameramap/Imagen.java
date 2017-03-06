@@ -8,6 +8,7 @@ import java.io.Serializable;
 
 public class Imagen implements Serializable {
 
+    private String nombre;
     private String rutaimagen;
     private Double latitude;
     private Double longitude;
@@ -16,12 +17,18 @@ public class Imagen implements Serializable {
     public Imagen(){}
 
 
-    public Imagen(String rutaimagen, Double latitude, Double longitude, String adress) {
+    public String getNombre() {
+        return nombre;
+    }
+
+    public Imagen(String rutaimagen, Double latitude, Double longitude, String adress, String nombre) {
 
         this.rutaimagen = rutaimagen;
         this.latitude=latitude;
         this.longitude=longitude;
         this.adress=adress;
+        this.nombre=nombre;
+
 
     }
 
